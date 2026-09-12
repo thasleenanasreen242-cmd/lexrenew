@@ -1,8 +1,9 @@
-import { type NextRequest } from 'next/server'
-import { updateSession } from '@/lib/supabase/proxy'
+import { type NextRequest, NextResponse } from 'next/server'
 
+// Supabase auth was removed in favor of the Neon architecture.
+// This proxy currently passes requests through unchanged.
 export async function proxy(request: NextRequest) {
-  return updateSession(request)
+  return NextResponse.next()
 }
 
 export const config = {
