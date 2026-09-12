@@ -10,6 +10,6 @@ export async function getSupabaseConnectToken(subjectId?: string) {
   return getToken('supabase/lexrenew', {
     subject: subjectId
       ? { type: 'user', id: subjectId }
-      : { type: 'user' },
+      : { type: 'app' },
   })
 }
