@@ -2,7 +2,11 @@
   "name": "lexrenew",
   "version": "0.1.0",
   "private": true,
-  "scripts": {"dev": "next dev", "build": "next build", "start": "next start"},
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
   "dependencies": {
     "next": "16.2.10",
     "react": "19.2.0",
@@ -17,7 +21,6 @@
     "typescript": "^5.0.0",
     "tailwindcss": "^4.0.0",
     "@tailwindcss/postcss": "^4.0.0",
-    "postcss": "^8.0.0",
-    "@neon/config": "latest"
+    "postcss": "^8.0.0"
   }
 }
