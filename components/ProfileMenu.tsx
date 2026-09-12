@@ -12,19 +12,27 @@ type ProfileResponse = {
 
 export default function ProfileMenu() {
   const [open, setOpen] = useState(false)
+  const [loaded, setLoaded] = useState(false)
   const [name, setName] = useState('Account')
   const [workspace, setWorkspace] = useState('LexRenew Workspace')
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    if (!open || loaded) return
+
+    let cancelled = false
     fetch('/api/profile')
       .then(async response => response.ok ? response.json() as Promise<ProfileResponse> : null)
       .then(data => {
-        if (data?.profile?.full_name?.trim()) setName(data.profile.full_name.trim())
-        if (data?.workspace?.trim()) setWorkspace(data.workspace.trim())
+        if (cancelled || !data) return
+        if (data.profile?.full_name?.trim()) setName(data.profile.full_name.trim())
+        if (data.workspace?.trim()) setWorkspace(data.workspace.trim())
+        setLoaded(true)
       })
       .catch(() => {})
-  }, [])
+
+    return () => { cancelled = true }
+  }, [open, loaded])
 
   useEffect(() => {
     function onPointerDown(event: MouseEvent) {
