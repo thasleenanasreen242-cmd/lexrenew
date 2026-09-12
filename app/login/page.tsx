@@ -26,10 +26,13 @@ export default function LoginPage() {
       if (mode === 'signup' && !result.data.session) {
         setMessage('Account created. Check your email to confirm your account.')
       } else {
-        window.location.href = '/'
+        window.location.assign('/')
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Authentication failed')
+      const text = error instanceof Error ? error.message : 'Authentication failed'
+      setMessage(text === 'Supabase environment variables are not configured'
+        ? 'Login is not configured on this deployment. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in Vercel, then redeploy.'
+        : text)
     } finally {
       setBusy(false)
     }
@@ -38,13 +41,7 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen bg-slate-50 flex items-center justify-center p-5">
       <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-        <div className="mb-8 flex items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#174ea6] text-lg font-bold text-white">L</div>
-          <div>
-            <p className="text-xl font-bold tracking-tight">LexRenew</p>
-            <p className="text-sm text-slate-500">Legal & compliance renewals</p>
-          </div>
-        </div>
+        <div className="mb-8 flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-xl bg-[#174ea6] text-lg font-bold text-white">L</div><div><p className="text-xl font-bold tracking-tight">LexRenew</p><p className="text-sm text-slate-500">Legal & compliance renewals</p></div></div>
         <h1 className="text-2xl font-bold">{mode === 'signin' ? 'Welcome back' : 'Create your account'}</h1>
         <p className="mt-1 text-sm text-slate-500">{mode === 'signin' ? 'Sign in to your workspace.' : 'Start tracking your renewals.'}</p>
         <form onSubmit={submit} className="mt-6 space-y-4">
