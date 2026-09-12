@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { sql } from '@/lib/db'
+import { getDb } from '@/lib/db'
 
 function statusFor(expiryDate: string) {
   const today = new Date()
@@ -11,6 +11,7 @@ function statusFor(expiryDate: string) {
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const sql = getDb()
     const { id } = await params
     const body = await request.json()
     const title = String(body.title ?? '').trim()
@@ -46,6 +47,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const sql = getDb()
     const { id } = await params
     const rows = await sql`
       UPDATE obligations SET archived_at = NOW()
