@@ -1,11 +1,7 @@
-import { neon } from '@neondatabase/serverless'
+// LexRenew uses Supabase as its database. Keep this module as a compatibility shim
+// for any legacy imports while the application is fully migrated away from Neon.
+import { createClient } from '@/lib/supabase/server'
 
-export function getDb() {
-  const databaseUrl = process.env.DATABASE_URL
-
-  if (!databaseUrl) {
-    throw new Error('DATABASE_URL is not configured')
-  }
-
-  return neon(databaseUrl)
+export async function getDb() {
+  return createClient()
 }
