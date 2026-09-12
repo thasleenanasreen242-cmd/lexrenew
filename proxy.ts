@@ -4,10 +4,15 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request })
   const pathname = request.nextUrl.pathname
+  const isApi = pathname.startsWith('/api/')
   const isPublic = pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/auth')
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY
+
+  // API routes enforce authentication themselves and must return JSON responses.
+  // Redirecting an API fetch to /login makes the browser receive HTML where JSON is expected.
+  if (isApi) return response
 
   if (!url || !key) {
     if (isPublic) return response
