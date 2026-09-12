@@ -29,7 +29,7 @@ function statusFor(date: string): Item['status'] {
 export default function Home() {
   const supabase = createClient()
   const [items, setItems] = useState<Item[]>([])
-  const [workspace, setWorkspace] = useState('Workspace')
+  const [workspace, setWorkspace] = useState('LexRenew Workspace')
   const [organizationId, setOrganizationId] = useState<string | null>(null)
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState('All')
@@ -40,17 +40,10 @@ export default function Home() {
 
   async function loadDashboard() {
     setLoading(true)
-    const { data: userData } = await supabase.auth.getUser()
-    const user = userData.user
-    if (!user) {
-      window.location.href = '/login'
-      return
-    }
 
     const { data: membership } = await supabase
       .from('organization_members')
       .select('organization_id')
-      .eq('user_id', user.id)
       .limit(1)
       .maybeSingle()
 
@@ -70,7 +63,10 @@ export default function Home() {
       if (!error && data) {
         setItems(data.map(item => ({ ...item, status: statusFor(item.expiry_date) })))
       }
+    } else {
+      setItems([])
     }
+
     setLoading(false)
   }
 
@@ -93,14 +89,12 @@ export default function Home() {
   async function add(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!organizationId) {
-      setToast('No workspace is linked to this account')
+      setToast('Create a workspace before adding obligations')
       return
     }
 
     setSaving(true)
     const form = new FormData(event.currentTarget)
-    const { data: userData } = await supabase.auth.getUser()
-    const user = userData.user
     const expiry = String(form.get('expiry'))
     const payload = {
       organization_id: organizationId,
@@ -109,7 +103,6 @@ export default function Home() {
       counterparty: String(form.get('counterparty')).trim(),
       expiry_date: expiry,
       status: statusFor(expiry),
-      created_by: user?.id ?? null,
     }
 
     const { error } = await supabase.from('obligations').insert(payload)
