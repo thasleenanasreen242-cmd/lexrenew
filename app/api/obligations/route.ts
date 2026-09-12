@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { sql } from '@/lib/db'
+import { getDb } from '@/lib/db'
 
 function statusFor(expiryDate: string) {
   const today = new Date()
@@ -10,6 +10,7 @@ function statusFor(expiryDate: string) {
 }
 
 async function workspace() {
+  const sql = getDb()
   const rows = await sql`SELECT id, name FROM organizations ORDER BY created_at ASC LIMIT 1`
   if (!rows[0]) {
     const created = await sql`
@@ -25,6 +26,7 @@ async function workspace() {
 
 export async function GET() {
   try {
+    const sql = getDb()
     const org = await workspace()
     const rows = await sql`
       SELECT id, title, type, counterparty, reference_number, start_date,
@@ -43,6 +45,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const sql = getDb()
     const body = await request.json()
     const title = String(body.title ?? '').trim()
     const expiryDate = String(body.expiry_date ?? '')
