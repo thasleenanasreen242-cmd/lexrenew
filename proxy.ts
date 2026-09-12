@@ -7,15 +7,14 @@ export async function proxy(request: NextRequest) {
   const isApi = pathname.startsWith('/api/')
   const isPublic = pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/auth')
 
+  // API routes authenticate themselves. Public pages do not need a remote
+  // Supabase session check before they can render.
+  if (isApi || isPublic) return response
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY
 
-  // API routes enforce authentication themselves and must return JSON responses.
-  // Redirecting an API fetch to /login makes the browser receive HTML where JSON is expected.
-  if (isApi) return response
-
   if (!url || !key) {
-    if (isPublic) return response
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = '/login'
     loginUrl.searchParams.set('next', pathname)
@@ -39,15 +38,11 @@ export async function proxy(request: NextRequest) {
   const { data } = await supabase.auth.getClaims()
   const isAuthenticated = Boolean(data?.claims)
 
-  if (!isAuthenticated && !isPublic) {
+  if (!isAuthenticated) {
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = '/login'
     loginUrl.searchParams.set('next', pathname)
     return NextResponse.redirect(loginUrl)
-  }
-
-  if (isAuthenticated && pathname === '/login') {
-    return NextResponse.redirect(new URL('/', request.url))
   }
 
   return response
