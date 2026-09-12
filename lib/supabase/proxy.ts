@@ -2,6 +2,14 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
+  const path = request.nextUrl.pathname
+  const isPublic = path === '/login' || path.startsWith('/auth')
+
+  // Login and auth callback pages must always be reachable first.
+  if (isPublic) {
+    return NextResponse.next()
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -23,21 +31,12 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const { data } = await supabase.auth.getClaims()
+  const { data, error } = await supabase.auth.getClaims()
   const user = data?.claims
-  const path = request.nextUrl.pathname
-  const isPublic = path.startsWith('/login') || path.startsWith('/auth')
 
-  if (!user && !isPublic) {
+  if (error || !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
-    url.search = ''
-    return NextResponse.redirect(url)
-  }
-
-  if (user && path === '/login') {
-    const url = request.nextUrl.clone()
-    url.pathname = '/'
     url.search = ''
     return NextResponse.redirect(url)
   }
