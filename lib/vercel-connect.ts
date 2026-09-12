@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { getToken } from '@Vercel/connect'
+import { getToken } from '@vercel/connect'
 
 /**
  * Returns the short-lived Vercel Connect token for the Supabase resource.
