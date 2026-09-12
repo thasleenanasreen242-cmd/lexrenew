@@ -21,18 +21,42 @@ export async function ensureUserProfile(supabase: SupabaseClient, user: User) {
 }
 
 export async function ensureWorkspace(supabase: SupabaseClient, user: User) {
-  await ensureUserProfile(supabase, user)
-  const { data: membership, error: membershipError } = await supabase.from('organization_members').select('organization_id').eq('user_id', user.id).order('created_at', { ascending: true }).limit(1).maybeSingle()
+  const { data: membership, error: membershipError } = await supabase
+    .from('organization_members')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
   if (membershipError) throw membershipError
+
   if (membership?.organization_id) {
-    const { data: org, error } = await supabase.from('organizations').select('id, name, slug').eq('id', membership.organization_id).single()
+    const { data: org, error } = await supabase
+      .from('organizations')
+      .select('id, name, slug')
+      .eq('id', membership.organization_id)
+      .single()
+
     if (error) throw error
     return org
   }
+
+  await ensureUserProfile(supabase, user)
+
   const slug = `lexrenew-${user.id}`
-  const { data: org, error: orgError } = await supabase.from('organizations').upsert({ name: 'LexRenew Workspace', slug }, { onConflict: 'slug' }).select('id, name, slug').single()
+  const { data: org, error: orgError } = await supabase
+    .from('organizations')
+    .upsert({ name: 'LexRenew Workspace', slug }, { onConflict: 'slug' })
+    .select('id, name, slug')
+    .single()
+
   if (orgError || !org) throw orgError ?? new Error('Unable to create workspace')
-  const { error: memberError } = await supabase.from('organization_members').upsert({ organization_id: org.id, user_id: user.id, role: 'Owner' }, { onConflict: 'organization_id,user_id' })
+
+  const { error: memberError } = await supabase
+    .from('organization_members')
+    .upsert({ organization_id: org.id, user_id: user.id, role: 'Owner' }, { onConflict: 'organization_id,user_id' })
+
   if (memberError) throw memberError
   return org
 }
