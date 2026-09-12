@@ -15,14 +15,29 @@ export async function proxy(request: NextRequest) {
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           response = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options)
+          })
         },
       },
     },
   )
 
-  // Refresh the Supabase session cookie when needed.
-  await supabase.auth.getUser()
+  const { data } = await supabase.auth.getClaims()
+  const isAuthenticated = Boolean(data?.claims)
+  const pathname = request.nextUrl.pathname
+  const isPublic = pathname.startsWith('/login') || pathname.startsWith('/auth')
+
+  if (!isAuthenticated && !isPublic) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    url.searchParams.set('next', pathname)
+    return NextResponse.redirect(url)
+  }
+
+  if (isAuthenticated && pathname === '/login') {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
 
   return response
 }
