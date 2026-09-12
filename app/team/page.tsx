@@ -1,17 +1,28 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowLeft, Mail, Plus, Trash2, Users, X } from 'lucide-react'
+import { ArrowLeft, Loader2, Mail, Users } from 'lucide-react'
 import Link from 'next/link'
 
 type Member = { id: string; name: string; email: string; role: 'Owner' | 'Admin' | 'Member' }
-const seed: Member[] = [{ id: 'm1', name: 'Workspace Owner', email: 'owner@acme.example', role: 'Owner' }]
 
 export default function TeamPage() {
-  const [members, setMembers] = useState<Member[]>(seed)
-  const [show, setShow] = useState(false)
-  useEffect(() => { try { const s = localStorage.getItem('lexrenew-team'); if (s) setMembers(JSON.parse(s)) } catch {} }, [])
-  useEffect(() => { localStorage.setItem('lexrenew-team', JSON.stringify(members)) }, [members])
-  function add(e: React.FormEvent<HTMLFormElement>) { e.preventDefault(); const f = new FormData(e.currentTarget); setMembers(m => [...m, { id: crypto.randomUUID(), name: String(f.get('name')), email: String(f.get('email')), role: String(f.get('role')) as Member['role'] }]); setShow(false) }
-  return <main className="min-h-screen bg-[#f7f8fa] text-[#101828]"><div className="mx-auto max-w-[1000px] px-5 py-6 lg:px-8"><header className="mb-7 flex items-center justify-between"><div className="flex items-center gap-4"><Link href="/" className="rounded-xl border border-slate-200 bg-white p-2.5"><ArrowLeft size={18}/></Link><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Workspace</p><h1 className="text-2xl font-semibold">Team</h1></div></div><button onClick={() => setShow(true)} className="flex items-center gap-2 rounded-xl bg-[#084888] px-4 py-2.5 text-sm font-semibold text-white"><Plus size={17}/> Invite member</button></header><section className="rounded-2xl border border-slate-200 bg-white"><div className="border-b border-slate-100 p-5"><div className="flex items-center gap-3"><div className="rounded-xl bg-blue-50 p-2.5 text-[#084888]"><Users size={20}/></div><div><h2 className="font-semibold">Workspace members</h2><p className="text-sm text-slate-500">Manage who can access this workspace.</p></div></div></div><div className="divide-y divide-slate-100">{members.map(m => <div key={m.id} className="flex items-center justify-between p-5"><div><p className="font-semibold">{m.name}</p><p className="mt-1 flex items-center gap-1 text-sm text-slate-500"><Mail size={14}/>{m.email}</p></div><div className="flex items-center gap-3"><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{m.role}</span>{m.role !== 'Owner' && <button onClick={() => setMembers(x => x.filter(y => y.id !== m.id))} className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"><Trash2 size={16}/></button>}</div></div>)}</div></section></div>{show && <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/35 p-4"><form onSubmit={add} className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"><div className="mb-5 flex items-center justify-between"><div><h2 className="text-xl font-semibold">Invite member</h2><p className="mt-1 text-sm text-slate-500">Add a teammate to this workspace.</p></div><button type="button" onClick={() => setShow(false)}><X size={20}/></button></div><div className="space-y-4"><input name="name" required placeholder="Full name" className="w-full rounded-xl border border-slate-200 px-3 py-2.5"/><input name="email" required type="email" placeholder="Email address" className="w-full rounded-xl border border-slate-200 px-3 py-2.5"/><select name="role" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5"><option>Member</option><option>Admin</option></select></div><div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setShow(false)} className="rounded-xl px-4 py-2.5 text-sm font-semibold">Cancel</button><button className="rounded-xl bg-[#084888] px-5 py-2.5 text-sm font-semibold text-white">Add member</button></div></form></div>}</main>
+  const [members, setMembers] = useState<Member[]>([])
+  const [workspace, setWorkspace] = useState('LexRenew Workspace')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    fetch('/api/team')
+      .then(async response => {
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Unable to load team')
+        setMembers(data.members ?? [])
+        if (data.workspace?.name) setWorkspace(data.workspace.name)
+      })
+      .catch(err => setError(err instanceof Error ? err.message : 'Unable to load team'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  return <main className="min-h-screen bg-[#f7f8fa] text-[#101828]"><div className="mx-auto max-w-[1000px] px-5 py-6 lg:px-8"><header className="mb-7 flex items-center justify-between"><div className="flex items-center gap-4"><Link href="/" className="rounded-xl border border-slate-200 bg-white p-2.5"><ArrowLeft size={18}/></Link><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{workspace}</p><h1 className="text-2xl font-semibold">Team</h1></div></div></header><section className="rounded-2xl border border-slate-200 bg-white"><div className="border-b border-slate-100 p-5"><div className="flex items-center gap-3"><div className="rounded-xl bg-blue-50 p-2.5 text-[#084888]"><Users size={20}/></div><div><h2 className="font-semibold">Workspace members</h2><p className="text-sm text-slate-500">Members with access to this Supabase workspace.</p></div></div></div>{loading ? <div className="flex items-center gap-2 p-6 text-sm text-slate-500"><Loader2 className="animate-spin" size={18}/>Loading team…</div> : error ? <div className="p-6 text-sm text-red-600">{error}</div> : <div className="divide-y divide-slate-100">{members.map(member => <div key={member.id} className="flex items-center justify-between p-5"><div><p className="font-semibold">{member.name}</p><p className="mt-1 flex items-center gap-1 text-sm text-slate-500"><Mail size={14}/>{member.email}</p></div><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{member.role}</span></div>)}{members.length === 0 && <div className="p-6 text-sm text-slate-500">No workspace members found.</div>}</div>}</section><p className="mt-4 text-xs text-slate-500">Invitations will be enabled with a server-side Supabase invitation flow; this page no longer stores fake members in your browser.</p></div></main>
 }
