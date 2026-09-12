@@ -1,6 +1,8 @@
 'use client'
 
-import { FormEvent, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
+import Link from 'next/link'
+import { ArrowLeft, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
@@ -9,6 +11,15 @@ export default function LoginPage() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [nextPath, setNextPath] = useState('/')
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('mode') === 'signup') setMode('signup')
+    const next = params.get('next')
+    if (next?.startsWith('/')) setNextPath(next)
+  }, [])
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -24,9 +35,9 @@ export default function LoginPage() {
       if (result.error) throw result.error
 
       if (mode === 'signup' && !result.data.session) {
-        setMessage('Account created. Check your email to confirm your account.')
+        setMessage('Account created. Check your email to confirm your account, then return here to sign in.')
       } else {
-        window.location.assign('/')
+        window.location.assign(nextPath)
       }
     } catch (error) {
       const text = error instanceof Error ? error.message : 'Authentication failed'
@@ -38,20 +49,87 @@ export default function LoginPage() {
     }
   }
 
+  function switchMode() {
+    setMode(current => current === 'signin' ? 'signup' : 'signin')
+    setMessage('')
+    setPassword('')
+  }
+
   return (
-    <main className="min-h-screen bg-slate-50 flex items-center justify-center p-5">
-      <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-        <div className="mb-8 flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-xl bg-[#174ea6] text-lg font-bold text-white">L</div><div><p className="text-xl font-bold tracking-tight">LexRenew</p><p className="text-sm text-slate-500">Legal & compliance renewals</p></div></div>
-        <h1 className="text-2xl font-bold">{mode === 'signin' ? 'Welcome back' : 'Create your account'}</h1>
-        <p className="mt-1 text-sm text-slate-500">{mode === 'signin' ? 'Sign in to your workspace.' : 'Start tracking your renewals.'}</p>
-        <form onSubmit={submit} className="mt-6 space-y-4">
-          <input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Work email" className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#174ea6]" />
-          <input required minLength={6} type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-[#174ea6]" />
-          {message && <p className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600">{message}</p>}
-          <button disabled={busy} className="w-full rounded-xl bg-[#174ea6] px-4 py-3 font-semibold text-white disabled:opacity-60">{busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}</button>
+    <main className="min-h-screen bg-white text-slate-950">
+      <header className="flex h-16 items-center justify-between border-b border-slate-100 px-5 sm:px-8">
+        <Link href="/" className="flex items-center gap-2.5 font-semibold tracking-tight">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#174ea6] text-sm font-bold text-white">L</span>
+          <span className="text-lg">LexRenew</span>
+        </Link>
+        <Link href="/" className="flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900">
+          <ArrowLeft size={16}/> Back to dashboard
+        </Link>
+      </header>
+
+      <section className="mx-auto flex min-h-[calc(100vh-64px)] w-full max-w-md flex-col justify-center px-6 py-12">
+        <div className="mb-9 text-center">
+          <div className="mx-auto mb-5 grid h-12 w-12 place-items-center rounded-2xl bg-[#174ea6] text-lg font-bold text-white shadow-sm">L</div>
+          <h1 className="text-3xl font-semibold tracking-tight">{mode === 'signin' ? 'Welcome back' : 'Create your account'}</h1>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            {mode === 'signin' ? 'Sign in to continue to your LexRenew workspace.' : 'Create your workspace and start tracking renewals.'}
+          </p>
+        </div>
+
+        <form onSubmit={submit} className="space-y-4">
+          <label className="block">
+            <span className="mb-2 block text-sm font-medium text-slate-700">Email address</span>
+            <div className="relative">
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18}/>
+              <input
+                required
+                autoComplete="email"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-11 pr-4 text-[15px] outline-none transition placeholder:text-slate-400 focus:border-[#174ea6] focus:ring-4 focus:ring-blue-50"
+              />
+            </div>
+          </label>
+
+          <label className="block">
+            <span className="mb-2 block text-sm font-medium text-slate-700">Password</span>
+            <div className="relative">
+              <LockKeyhole className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18}/>
+              <input
+                required
+                minLength={6}
+                autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder={mode === 'signin' ? 'Enter your password' : 'At least 6 characters'}
+                className="h-12 w-full rounded-xl border border-slate-300 bg-white pl-11 pr-11 text-[15px] outline-none transition placeholder:text-slate-400 focus:border-[#174ea6] focus:ring-4 focus:ring-blue-50"
+              />
+              <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(value => !value)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
+                {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>} 
+              </button>
+            </div>
+          </label>
+
+          {message && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-5 text-slate-700">{message}</div>
+          )}
+
+          <button disabled={busy} className="mt-1 h-12 w-full rounded-xl bg-[#174ea6] px-4 text-[15px] font-semibold text-white shadow-sm transition hover:bg-[#123f87] focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60">
+            {busy ? 'Please wait…' : mode === 'signin' ? 'Continue' : 'Create account'}
+          </button>
         </form>
-        <button onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setMessage('') }} className="mt-5 w-full text-sm font-semibold text-[#174ea6]">{mode === 'signin' ? 'Create a new account' : 'Already have an account? Sign in'}</button>
-      </div>
+
+        <div className="my-7 flex items-center gap-4"><div className="h-px flex-1 bg-slate-200"/><span className="text-xs font-medium uppercase tracking-[0.14em] text-slate-400">or</span><div className="h-px flex-1 bg-slate-200"/></div>
+
+        <button onClick={switchMode} className="h-12 w-full rounded-xl border border-slate-300 bg-white text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+          {mode === 'signin' ? 'Create a new LexRenew account' : 'Sign in to an existing account'}
+        </button>
+
+        <p className="mt-8 text-center text-xs leading-5 text-slate-400">By continuing, you agree to use LexRenew for authorized legal and compliance renewal tracking.</p>
+      </section>
     </main>
   )
 }
